@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { Character } from '../types';
 import { Modal } from './UI/Modal';
@@ -194,12 +194,6 @@ const Confetti = styled.div<{ $delay: number; $left: number }>`
   &:nth-child(4n) {
     background: #ff6bcb;
   }
-`;
-
-const LoadingText = styled.p`
-  font-size: clamp(1rem, 3vw, 1.25rem);
-  color: ${({ theme }) => theme.colors.muted};
-  margin: ${({ theme }) => theme.spacing(8)} 0;
 `;
 
 export const ResultModal: React.FC<ResultModalProps> = ({
