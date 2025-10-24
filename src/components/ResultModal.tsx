@@ -93,13 +93,17 @@ const RouletteContainer = styled.div`
   }
 `;
 
-const RouletteTrack = styled.div<{ $offset: number; $isSpinning: boolean }>`
+const RouletteTrack = styled.div<{ $offset: number; $isSpinning: boolean; $hidden: boolean }>`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing(2)};
   transition: ${({ $isSpinning }) =>
-    $isSpinning ? 'none' : 'transform 2s cubic-bezier(0.25, 0.1, 0.25, 1)'};
+    $isSpinning 
+      ? 'none' 
+      : 'transform 1.2s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.3s ease'};
   transform: translateY(${({ $offset }) => $offset}px);
+  opacity: ${({ $hidden }) => ($hidden ? 0 : 1)};
+  pointer-events: ${({ $hidden }) => ($hidden ? 'none' : 'auto')};
 `;
 
 const RouletteCard = styled.div<{ $isWinner?: boolean }>`
@@ -111,6 +115,7 @@ const RouletteCard = styled.div<{ $isWinner?: boolean }>`
   align-items: center;
   gap: ${({ theme }) => theme.spacing(3)};
   border: 3px solid transparent;
+  flex-shrink: 0;
   
   ${({ $isWinner, theme }) =>
     $isWinner &&
@@ -123,6 +128,22 @@ const RouletteCard = styled.div<{ $isWinner?: boolean }>`
     width: 240px;
     padding: ${({ theme }) => theme.spacing(3)};
   }
+`;
+
+const WinnerOverlay = styled.div<{ $visible: boolean }>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+  transform: ${({ $visible }) => ($visible ? 'scale(1)' : 'scale(0.9)')};
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  pointer-events: ${({ $visible }) => ($visible ? 'auto' : 'none')};
+  z-index: 10;
 `;
 
 const CardImage = styled.img`
@@ -213,7 +234,7 @@ export const ResultModal: React.FC<ResultModalProps> = ({
     if (isOpen && selectedHero && selected.length > 0) {
       // Create roulette cards by repeating the selected heroes
       const cards: Character[] = [];
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 15; i++) {
         cards.push(...selected);
       }
       // Add the winning hero at a specific position
@@ -227,20 +248,20 @@ export const ResultModal: React.FC<ResultModalProps> = ({
       setShowConfetti(false);
       setOffset(0);
 
-      // Rapid spinning phase
+      // Rapid spinning phase (reduced from 1500ms to 1200ms)
       const spinTimer = setTimeout(() => {
         setIsSpinning(false);
-        // Calculate offset to center the winning card (150px per card + gap)
+        // Calculate offset to center the winning card
         const cardHeight = 100; // Approximate height including gap
         const targetOffset = -(winningIndex * cardHeight - 100);
         setOffset(targetOffset);
 
-        // Show result after deceleration
+        // Show result after shorter deceleration (reduced from 2000ms to 1100ms)
         setTimeout(() => {
           setDisplayHero(selectedHero);
           setShowConfetti(true);
-        }, 2000);
-      }, 1500);
+        }, 1100);
+      }, 1200);
 
       return () => clearTimeout(spinTimer);
     } else if (!isOpen) {
@@ -288,25 +309,28 @@ export const ResultModal: React.FC<ResultModalProps> = ({
 
         <Title>🎰 {displayHero ? 'Your Hero is...' : 'Picking Your Hero...'}</Title>
 
-        {!displayHero ? (
-          <RouletteContainer>
-            <RouletteTrack $offset={offset} $isSpinning={isSpinning}>
-              {rouletteCards.map((character, index) => (
-                <RouletteCard key={`${character.name}-${index}`}>
-                  <CardImage src={character.imageUrl} alt={character.name} />
-                  <CardName>{character.name}</CardName>
-                </RouletteCard>
-              ))}
-            </RouletteTrack>
-          </RouletteContainer>
-        ) : (
-          <>
-            <RouletteContainer>
+        <RouletteContainer>
+          <RouletteTrack $offset={offset} $isSpinning={isSpinning} $hidden={!!displayHero}>
+            {rouletteCards.map((character, index) => (
+              <RouletteCard key={`${character.name}-${index}`}>
+                <CardImage src={character.imageUrl} alt={character.name} />
+                <CardName>{character.name}</CardName>
+              </RouletteCard>
+            ))}
+          </RouletteTrack>
+          
+          <WinnerOverlay $visible={!!displayHero}>
+            {displayHero && (
               <RouletteCard $isWinner>
                 <CardImage src={displayHero.imageUrl} alt={displayHero.name} />
                 <CardName>{displayHero.name}</CardName>
               </RouletteCard>
-            </RouletteContainer>
+            )}
+          </WinnerOverlay>
+        </RouletteContainer>
+        
+        {displayHero && (
+          <>
             <HeroName>🎉 {displayHero.name} 🎉</HeroName>
             <ButtonGroup>
               <Button onClick={handlePickAgain}>🎲 Pick Again</Button>
